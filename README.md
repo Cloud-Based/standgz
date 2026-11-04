@@ -1,4 +1,4 @@
-# Rasa Rumah — Modular Vue 3 + TypeScript
+# Stand Gen-Z — Modular Vue 3 + TypeScript
 
 ## Menjalankan
 1. `npm install`
@@ -16,6 +16,4 @@
 - `composables/useStore.ts`: state keranjang/favorit bersama antarhalaman.
 - `data/products.ts`: katalog produk.
 - `types/index.ts`: tipe TypeScript.
-
-Checkout masih simulasi frontend; tombol Buat pesanan belum memanggil backend/payment gateway.
 # standgz
