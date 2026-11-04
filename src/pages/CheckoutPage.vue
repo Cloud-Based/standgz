@@ -25,14 +25,21 @@ const phone = ref("");
 const address = ref("");
 const notes = ref("");
 
-const isDelivery = computed(() => cartTotal.value >= MINIMUM_DELIVERY);
+type OrderMethod = "pickup" | "delivery";
+
+const orderMethod = ref<OrderMethod>("pickup");
+
+const canDelivery = computed(() => cartTotal.value >= MINIMUM_DELIVERY);
+
+const isDelivery = computed(() => orderMethod.value === "delivery");
 
 const canSubmit = computed(() => {
   return (
     cart.value.length > 0 &&
     customerName.value.trim().length > 0 &&
     phone.value.trim().length > 0 &&
-    (!isDelivery.value || address.value.trim().length > 0)
+    (!isDelivery.value || address.value.trim().length > 0) &&
+    (!isDelivery.value || canDelivery.value)
   );
 });
 
@@ -130,26 +137,77 @@ Mohon konfirmasi pesanan saya. Terima kasih! 🙏
           />
         </label>
 
-        <!-- Informasi pengantaran -->
+        <!-- Pilihan Metode Pesanan -->
         <div class="delivery-section">
           <div class="delivery-heading">
-            <component :is="isDelivery ? MapPin : Store" :size="20" />
+            <Store :size="20" />
 
             <div>
-              <h3>
-                {{ isDelivery ? "Pengantaran pesanan" : "Ambil di stand" }}
-              </h3>
-
-              <p>
-                {{
-                  isDelivery
-                    ? "Pesanan memenuhi minimum untuk layanan delivery."
-                    : "Total belanja belum memenuhi minimum delivery."
-                }}
-              </p>
+              <h3>Metode pengambilan pesanan</h3>
+              <p>Pilih cara mendapatkan pesananmu.</p>
             </div>
           </div>
 
+          <!-- Pilihan metode -->
+          <div class="order-method-options">
+            <!-- Pickup -->
+            <button
+              type="button"
+              class="order-method-card"
+              :class="{ active: orderMethod === 'pickup' }"
+              @click="orderMethod = 'pickup'"
+            >
+              <div class="method-icon">
+                <Store :size="20" />
+              </div>
+
+              <div class="method-info">
+                <strong>Ambil di Stand</strong>
+                <small>Datang langsung untuk mengambil pesanan.</small>
+              </div>
+
+              <span class="method-radio">
+                <span v-if="orderMethod === 'pickup'"></span>
+              </span>
+            </button>
+
+            <!-- Delivery -->
+            <button
+              type="button"
+              class="order-method-card"
+              :class="{
+                active: orderMethod === 'delivery',
+                disabled: !canDelivery,
+              }"
+              :disabled="!canDelivery"
+              @click="orderMethod = 'delivery'"
+            >
+              <div class="method-icon">
+                <MapPin :size="20" />
+              </div>
+
+              <div class="method-info">
+                <strong>Delivery</strong>
+                <small>
+                  {{
+                    canDelivery
+                      ? "Pesanan diantar ke alamatmu."
+                      : `Minimal belanja ${formatPrice(MINIMUM_DELIVERY)}`
+                  }}
+                </small>
+              </div>
+
+              <span v-if="canDelivery" class="method-radio">
+                <span v-if="orderMethod === 'delivery'"></span>
+              </span>
+
+              <span v-else class="method-locked">
+                <span>🔒</span>
+              </span>
+            </button>
+          </div>
+
+          <!-- Alamat Delivery -->
           <div v-if="isDelivery" class="delivery-info">
             <label>
               Alamat pengantaran
@@ -168,14 +226,13 @@ Mohon konfirmasi pesanan saya. Terima kasih! 🙏
             </div>
           </div>
 
+          <!-- Informasi Pickup -->
           <div v-else class="pickup-info">
             <Store :size="17" />
 
             <span>
-              Belanja minimal
-              <strong>{{ formatPrice(MINIMUM_DELIVERY) }}</strong>
-              untuk menggunakan layanan delivery. Silakan ambil pesanan langsung
-              di stand.
+              Kamu memilih mengambil pesanan langsung di stand. Silakan datang
+              setelah pesanan dikonfirmasi.
             </span>
           </div>
         </div>
@@ -243,7 +300,7 @@ Mohon konfirmasi pesanan saya. Terima kasih! 🙏
           </strong>
         </div>
 
-        <div v-if="!isDelivery" class="minimum-notice">
+        <div v-if="!canDelivery" class="minimum-notice">
           <span>💡</span>
 
           <p>
@@ -251,13 +308,13 @@ Mohon konfirmasi pesanan saya. Terima kasih! 🙏
             <strong>
               {{ formatPrice(MINIMUM_DELIVERY - cartTotal) }}
             </strong>
-            lagi untuk mendapatkan layanan delivery.
+            lagi untuk membuka pilihan delivery.
           </p>
         </div>
 
         <div v-else class="minimum-success">
           <CheckCircle2 :size="16" />
-          Minimum delivery terpenuhi!
+          Kamu bisa memilih pickup atau delivery!
         </div>
 
         <small class="demo-note">
@@ -326,6 +383,121 @@ Mohon konfirmasi pesanan saya. Terima kasih! 🙏
 .checkout-form {
   display: grid;
   gap: 19px;
+}
+
+/* Order Method Selection */
+.order-method-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 11px;
+}
+
+.order-method-card {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  gap: 11px;
+
+  width: 100%;
+  min-height: 82px;
+  padding: 13px;
+
+  border: 1.5px solid #e6e2d8;
+  border-radius: 13px;
+
+  background: #fffefa;
+  color: #244632;
+
+  text-align: left;
+  font-family: inherit;
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.order-method-card:hover:not(:disabled) {
+  border-color: #a7b9a6;
+  background: #f8faf5;
+}
+
+.order-method-card.active {
+  border-color: #244632;
+  background: #eaf0e5;
+}
+
+.order-method-card.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.method-icon {
+  width: 37px;
+  height: 37px;
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 10px;
+  background: #f1f0e8;
+}
+
+.order-method-card.active .method-icon {
+  background: #244632;
+  color: white;
+}
+
+.method-info {
+  flex: 1;
+  display: grid;
+  gap: 5px;
+}
+
+.method-info strong {
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.method-info small {
+  color: #858b80;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.method-radio {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1.5px solid #c9cec3;
+  border-radius: 50%;
+}
+
+.order-method-card.active .method-radio {
+  border-color: #244632;
+}
+
+.method-radio span {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #244632;
+}
+
+.method-locked {
+  font-size: 13px;
+}
+
+@media (max-width: 480px) {
+  .order-method-options {
+    grid-template-columns: 1fr;
+  }
 }
 
 .form-heading h2 {
